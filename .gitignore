@@ -1,0 +1,13 @@
+# API Keys — NO subir nunca a GitHub
+config.py
+
+# Entorno Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+.venv/
+
+# Sistema
+.DS_Store
