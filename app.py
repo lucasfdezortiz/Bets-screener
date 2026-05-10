@@ -18,344 +18,346 @@ FOOTBALL_LEAGUES = [
     "soccer_uefa_champs_league",
 ]
 
-st.set_page_config(
-    page_title="Value Bets Scanner",
-    page_icon="⚽",
-    layout="wide"
-)
+st.set_page_config(page_title="Value Bets Scanner", page_icon="⚽", layout="wide")
 
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600&display=swap');
 
-    .stApp { background: #0a0f0a; }
+html, body, .stApp { background-color: #0b1120 !important; }
 
-    .hero {
-        background: linear-gradient(135deg, #0d1f0d 0%, #0a0f0a 50%, #0d1a0d 100%);
-        border: 1px solid #1a3a1a;
-        border-radius: 16px;
-        padding: 2.5rem 2rem 2rem;
-        margin-bottom: 2rem;
-        position: relative;
-        overflow: hidden;
-    }
-    .hero::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #00c853, #69f0ae, #00c853);
-    }
-    .hero-title {
-        font-family: 'Oswald', sans-serif;
-        font-size: 2.8rem;
-        font-weight: 700;
-        color: #ffffff;
-        letter-spacing: 2px;
-        margin: 0;
-        text-transform: uppercase;
-    }
-    .hero-subtitle {
-        font-family: 'Inter', sans-serif;
-        color: #4caf50;
-        font-size: 0.85rem;
-        letter-spacing: 3px;
-        text-transform: uppercase;
-        margin-top: 0.3rem;
-    }
-    .hero-date {
-        font-family: 'Inter', sans-serif;
-        color: #555;
-        font-size: 0.8rem;
-        margin-top: 0.8rem;
-    }
+.header {
+    background: #0e1829;
+    border: 1px solid #c9a84c;
+    border-radius: 14px;
+    padding: 2rem 2.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+.header::after {
+    content: '⚽';
+    position: absolute;
+    right: 2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 6rem;
+    opacity: 0.06;
+}
+.header-eyebrow {
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #c9a84c;
+    margin-bottom: 0.4rem;
+}
+.header-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3.2rem;
+    color: #ffffff;
+    letter-spacing: 3px;
+    line-height: 1;
+    margin-bottom: 0.6rem;
+}
+.header-title span { color: #c9a84c; }
+.header-info {
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.78rem;
+    color: #4a6080;
+}
 
-    .metric-row {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 12px;
-        margin-bottom: 2rem;
-    }
-    .metric-card {
-        background: #0d1f0d;
-        border: 1px solid #1a3a1a;
-        border-radius: 12px;
-        padding: 1.2rem 1rem;
-        text-align: center;
-    }
-    .metric-value {
-        font-family: 'Oswald', sans-serif;
-        font-size: 2rem;
-        font-weight: 700;
-        color: #00c853;
-        margin: 0;
-    }
-    .metric-label {
-        font-family: 'Inter', sans-serif;
-        font-size: 0.7rem;
-        color: #555;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        margin-top: 0.3rem;
-    }
+.metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 1.5rem;
+}
+.metric {
+    background: #0e1829;
+    border: 1px solid #1a2a40;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+}
+.metric-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    color: #c9a84c;
+    line-height: 1;
+}
+.metric-val.white { color: #ffffff; }
+.metric-val.yellow { color: #f0c040; }
+.metric-lbl {
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #3a5070;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 4px;
+}
 
-    .section-title {
-        font-family: 'Oswald', sans-serif;
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #ffffff;
-        text-transform: uppercase;
-        letter-spacing: 3px;
-        padding: 0.5rem 0;
-        border-bottom: 1px solid #1a3a1a;
-        margin-bottom: 1rem;
-    }
-    .section-title.value { color: #00c853; }
-    .section-title.marginal { color: #ffc107; }
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 1.5rem 0 0.8rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid #1a2a40;
+}
+.section-badge {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: #c9a84c;
+    color: #0b1120;
+}
+.section-badge.marg {
+    background: #2a2000;
+    color: #f0c040;
+    border: 1px solid #3a3000;
+}
+.section-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    color: #ffffff;
+    letter-spacing: 2px;
+}
 
-    .bet-card {
-        background: #0d1a0d;
-        border: 1px solid #1a3a1a;
-        border-radius: 10px;
-        padding: 1rem 1.2rem;
-        margin-bottom: 0.8rem;
-        display: grid;
-        grid-template-columns: auto 1fr auto;
-        gap: 1rem;
-        align-items: center;
-        transition: border-color 0.2s;
-    }
-    .bet-card:hover { border-color: #00c853; }
-    .bet-card.marginal { border-color: #2a2000; }
-    .bet-card.marginal:hover { border-color: #ffc107; }
+.bet {
+    background: #0e1829;
+    border: 1px solid #1a2a40;
+    border-left: 3px solid #c9a84c;
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 0.6rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1.5rem;
+    align-items: center;
+}
+.bet.marg { border-left-color: #f0c040; opacity: 0.85; }
 
-    .bet-sport {
-        font-size: 1.6rem;
-        width: 40px;
-        text-align: center;
-    }
-    .bet-main { flex: 1; }
-    .bet-match {
-        font-family: 'Oswald', sans-serif;
-        font-size: 1rem;
-        color: #ffffff;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-    }
-    .bet-meta {
-        font-family: 'Inter', sans-serif;
-        font-size: 0.75rem;
-        color: #555;
-        margin-top: 3px;
-    }
-    .bet-market {
-        font-family: 'Inter', sans-serif;
-        font-size: 0.8rem;
-        color: #00c853;
-        margin-top: 5px;
-    }
-    .bet-market.marginal { color: #ffc107; }
+.bet-match {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.25rem;
+    color: #ffffff;
+    letter-spacing: 1px;
+    margin-bottom: 3px;
+}
+.bet-league {
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.72rem;
+    color: #3a5070;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+}
+.bet-market-pill {
+    display: inline-block;
+    background: #0b1828;
+    border: 1px solid #c9a84c;
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #c9a84c;
+}
+.bet-market-pill.marg {
+    border-color: #3a3000;
+    color: #f0c040;
+}
+.bet-date {
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.7rem;
+    color: #3a5070;
+    margin-top: 6px;
+}
 
-    .bet-stats { text-align: right; }
-    .bet-odds {
-        font-family: 'Oswald', sans-serif;
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: #ffffff;
-    }
-    .bet-edge {
-        font-family: 'Inter', sans-serif;
-        font-size: 0.75rem;
-        color: #00c853;
-        margin-top: 2px;
-    }
-    .bet-edge.marginal { color: #ffc107; }
-    .bet-kelly {
-        font-family: 'Inter', sans-serif;
-        font-size: 0.7rem;
-        color: #555;
-        margin-top: 2px;
-    }
+.bet-right { text-align: right; min-width: 110px; }
+.bet-odds {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.4rem;
+    color: #c9a84c;
+    line-height: 1;
+}
+.bet-edge {
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #4caf82;
+    margin-top: 3px;
+}
+.bet-ev {
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.68rem;
+    color: #3a5070;
+    margin-top: 2px;
+}
+.bet-kelly {
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin-top: 4px;
+    background: #1a2a40;
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: inline-block;
+}
 
-    .no-bets {
-        text-align: center;
-        padding: 3rem;
-        color: #333;
-        font-family: 'Oswald', sans-serif;
-        font-size: 1rem;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        border: 1px dashed #1a3a1a;
-        border-radius: 12px;
-    }
+.empty {
+    text-align: center;
+    padding: 2.5rem;
+    border: 1px dashed #1a2a40;
+    border-radius: 10px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.85rem;
+    color: #2a3a50;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
 
-    div[data-testid="stButton"] button {
-        background: #00c853 !important;
-        color: #000 !important;
-        font-family: 'Oswald', sans-serif !important;
-        font-size: 1rem !important;
-        font-weight: 700 !important;
-        letter-spacing: 3px !important;
-        text-transform: uppercase !important;
-        border: none !important;
-        border-radius: 8px !important;
-        padding: 0.8rem 2rem !important;
-        width: 100% !important;
-        cursor: pointer !important;
-    }
+div[data-testid="stButton"] > button {
+    background: #c9a84c !important;
+    color: #0b1120 !important;
+    font-family: 'Bebas Neue', sans-serif !important;
+    font-size: 1.1rem !important;
+    letter-spacing: 4px !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 0.75rem !important;
+    width: 100% !important;
+    transition: opacity 0.2s !important;
+}
+div[data-testid="stButton"] > button:hover { opacity: 0.88 !important; }
 
-    .stDownloadButton button {
-        background: transparent !important;
-        color: #00c853 !important;
-        border: 1px solid #1a3a1a !important;
-        font-family: 'Inter', sans-serif !important;
-        font-size: 0.8rem !important;
-        letter-spacing: 1px !important;
-    }
-
-    .market-warning {
-        background: #1a0a00;
-        border: 1px solid #3a2000;
-        border-radius: 8px;
-        padding: 0.8rem 1rem;
-        color: #ffc107;
-        font-family: 'Inter', sans-serif;
-        font-size: 0.8rem;
-        margin-bottom: 1rem;
-    }
+.stDownloadButton > button {
+    background: transparent !important;
+    color: #c9a84c !important;
+    border: 1px solid #1a2a40 !important;
+    font-family: 'Barlow', sans-serif !important;
+    font-size: 0.78rem !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
+now = datetime.now()
+st.markdown(f"""
+<div class="header">
+    <div class="header-eyebrow">Fútbol · Tenis · Winamax FR</div>
+    <div class="header-title">Value Bets <span>Scanner</span></div>
+    <div class="header-info">{now.strftime('%A %d %B %Y')} &nbsp;·&nbsp; Bankroll €{BANKROLL} &nbsp;·&nbsp; Edge mín. {MIN_EDGE}%</div>
+</div>
+""", unsafe_allow_html=True)
 
-def render_hero():
-    now = datetime.now().strftime("%A, %d %B %Y — %H:%M")
-    st.markdown(f"""
-    <div class="hero">
-        <div class="hero-subtitle">⚽ Football + Tennis · Winamax FR</div>
-        <div class="hero-title">Value Bets</div>
-        <div class="hero-title" style="color:#00c853;font-size:2rem;">Scanner</div>
-        <div class="hero-date">{now} · Bankroll €{BANKROLL} · Edge mín. {MIN_EDGE}%</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-
-def render_metrics(value, marg, total_kelly, hora):
-    st.markdown(f"""
-    <div class="metric-row">
-        <div class="metric-card">
-            <div class="metric-value">{len(value)}</div>
-            <div class="metric-label">Value Bets</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-value" style="color:#ffc107">{len(marg)}</div>
-            <div class="metric-label">Marginales</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-value">€{total_kelly:.0f}</div>
-            <div class="metric-label">Kelly Total</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-value" style="color:#ffffff;font-size:1.4rem">{hora}</div>
-            <div class="metric-label">Escaneado</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-
-def render_bets(bets, is_value=True):
-    css_class = "value" if is_value else "marginal"
-    title = f"✓ Value Bets — {len(bets)} encontradas" if is_value else f"~ Marginales — {len(bets)} encontradas"
-    st.markdown(f'<div class="section-title {css_class}">{title}</div>', unsafe_allow_html=True)
-
-    cards_html = ""
-    for b in bets:
-        dt = b["kickoff"]
-        fecha = f"{dt[5:10]} {dt[11:16]}" if len(dt) > 10 else dt
-        icon = "🎾" if b.get("sport") == "tennis" else "⚽"
-        edge_str = f"+{b['edge']:.1f}% edge"
-        kelly_str = f"Kelly: €{b['kelly']:.2f}" if b["kelly"] > 0 else "Kelly: —"
-        ev_str = f"EV/10€: +{b['ev_10']:.2f}€"
-        card_class = "" if is_value else "marginal"
-        market_class = "" if is_value else "marginal"
-        edge_class = "" if is_value else "marginal"
-
-        cards_html += f"""
-        <div class="bet-card {card_class}">
-            <div class="bet-sport">{icon}</div>
-            <div class="bet-main">
-                <div class="bet-match">{b['match']}</div>
-                <div class="bet-meta">{b['league']} · {fecha}</div>
-                <div class="bet-market {market_class}">{b['market']}</div>
-            </div>
-            <div class="bet-stats">
-                <div class="bet-odds">{b['odds']}</div>
-                <div class="bet-edge {edge_class}">{edge_str}</div>
-                <div class="bet-kelly">{ev_str} · {kelly_str}</div>
-            </div>
-        </div>
-        """
-    st.markdown(cards_html, unsafe_allow_html=True)
-
-
-render_hero()
-
-if st.button("ESCANEAR HOY"):
+if st.button("⚽  ESCANEAR HOY"):
     import sys
     sys.path.insert(0, "/mount/src/bets-screener")
-
     from modules.scanner import scan_value_bets
     from modules.tennis_scanner import scan_tennis_value_bets
 
     with st.spinner("Escaneando fútbol..."):
         football_bets = scan_value_bets(
-            odds_api_key=ODDS_API_KEY,
-            leagues=FOOTBALL_LEAGUES,
-            days_ahead=DAYS_AHEAD,
-            min_edge=MIN_EDGE,
-            bookmaker=BOOKMAKER,
-            bankroll=BANKROLL,
+            odds_api_key=ODDS_API_KEY, leagues=FOOTBALL_LEAGUES,
+            days_ahead=DAYS_AHEAD, min_edge=MIN_EDGE,
+            bookmaker=BOOKMAKER, bankroll=BANKROLL,
         )
         for b in football_bets:
             b.setdefault("sport", "football")
 
     with st.spinner("Escaneando tenis..."):
         tennis_bets = scan_tennis_value_bets(
-            odds_api_key=ODDS_API_KEY,
-            days_ahead=DAYS_AHEAD,
-            min_edge=MIN_EDGE,
-            bankroll=BANKROLL,
+            odds_api_key=ODDS_API_KEY, days_ahead=DAYS_AHEAD,
+            min_edge=MIN_EDGE, bankroll=BANKROLL,
         )
 
     all_bets = sorted(football_bets + tennis_bets, key=lambda x: x["edge"], reverse=True)
 
     if not all_bets:
-        st.markdown(f'<div class="no-bets">Sin value bets hoy con edge ≥ {MIN_EDGE}%</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="empty">Sin value bets hoy con edge ≥ {MIN_EDGE}%</div>', unsafe_allow_html=True)
     else:
         value = [b for b in all_bets if b["verdict"] == "VALUE BET"]
-        marg = [b for b in all_bets if b["verdict"] == "MARGINAL"]
+        marg  = [b for b in all_bets if b["verdict"] == "MARGINAL"]
+        total_kelly = sum(b["kelly"] for b in value)
 
-        render_metrics(value, marg, sum(b["kelly"] for b in value), datetime.now().strftime("%H:%M"))
+        st.markdown(f"""
+        <div class="metrics">
+            <div class="metric">
+                <div class="metric-val">{len(value)}</div>
+                <div class="metric-lbl">Value Bets</div>
+            </div>
+            <div class="metric">
+                <div class="metric-val yellow">{len(marg)}</div>
+                <div class="metric-lbl">Marginales</div>
+            </div>
+            <div class="metric">
+                <div class="metric-val">€{total_kelly:.0f}</div>
+                <div class="metric-lbl">Kelly Total</div>
+            </div>
+            <div class="metric">
+                <div class="metric-val white" style="font-size:1.5rem">{now.strftime('%H:%M')}</div>
+                <div class="metric-lbl">Escaneado</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        def render_bets(bets, is_value):
+            css = "" if is_value else "marg"
+            badge = "VALUE BET" if is_value else "MARGINAL"
+            label = f"{len(bets)} encontradas"
+            st.markdown(f"""
+            <div class="section-header">
+                <span class="section-badge {css}">{badge}</span>
+                <span class="section-label">{label}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+            cards = ""
+            for b in bets:
+                dt = b["kickoff"]
+                fecha = f"{dt[5:10]} · {dt[11:16]}" if len(dt) > 10 else dt
+                icon = "🎾" if b.get("sport") == "tennis" else "⚽"
+                kelly_str = f"€{b['kelly']:.2f}" if b["kelly"] > 0 else "—"
+                cards += f"""
+                <div class="bet {css}">
+                    <div>
+                        <div class="bet-league">{icon} {b['league']}</div>
+                        <div class="bet-match">{b['match']}</div>
+                        <div>
+                            <span class="bet-market-pill {css}">{b['market']}</span>
+                        </div>
+                        <div class="bet-date">{fecha}</div>
+                    </div>
+                    <div class="bet-right">
+                        <div class="bet-odds">{b['odds']}</div>
+                        <div class="bet-edge">+{b['edge']:.1f}% edge</div>
+                        <div class="bet-ev">EV/10€: +{b['ev_10']:.2f}€</div>
+                        <div class="bet-kelly">Kelly {kelly_str}</div>
+                    </div>
+                </div>
+                """
+            st.markdown(cards, unsafe_allow_html=True)
 
         if value:
-            render_bets(value, is_value=True)
+            render_bets(value, True)
         else:
-            st.markdown('<div class="no-bets">Sin value bets con edge &gt; 5% hoy</div>', unsafe_allow_html=True)
+            st.markdown('<div class="empty">Sin value bets con edge &gt; 5% hoy</div>', unsafe_allow_html=True)
 
         if marg:
-            st.markdown("<br>", unsafe_allow_html=True)
-            render_bets(marg, is_value=False)
+            render_bets(marg, False)
 
         df = pd.DataFrame([{
             "Liga": b["league"], "Partido": b["match"],
             "Fecha": b["kickoff"], "Apuesta": b["market"],
-            "Cuota": b["odds"], "Edge": b["edge"],
-            "Kelly": b["kelly"], "Veredicto": b["verdict"]
+            "Cuota": b["odds"], "Edge%": b["edge"],
+            "Kelly€": b["kelly"], "Veredicto": b["verdict"]
         } for b in all_bets])
-
         csv = df.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            "↓ Descargar CSV",
-            csv,
-            f"value_bets_{datetime.now().strftime('%Y%m%d')}.csv",
-            "text/csv"
-        )
+        st.download_button("↓ Descargar CSV", csv,
+            f"value_bets_{now.strftime('%Y%m%d')}.csv", "text/csv")
