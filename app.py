@@ -22,31 +22,20 @@ st.set_page_config(page_title="Value Bets Scanner", page_icon="⚽", layout="wid
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap');
 
-html, body, .stApp { background-color: #0b1120 !important; }
+html, body, .stApp { background-color: #0d1b2a !important; }
 
 .header {
-    background: #0e1829;
-    border: 1px solid #c9a84c;
+    background: #1a2e45;
+    border: 2px solid #c9a84c;
     border-radius: 14px;
     padding: 2rem 2.5rem;
     margin-bottom: 1.5rem;
-    position: relative;
-    overflow: hidden;
-}
-.header::after {
-    content: '⚽';
-    position: absolute;
-    right: 2rem;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 6rem;
-    opacity: 0.06;
 }
 .header-eyebrow {
     font-family: 'Barlow', sans-serif;
-    font-size: 0.72rem;
+    font-size: 0.78rem;
     font-weight: 600;
     letter-spacing: 4px;
     text-transform: uppercase;
@@ -55,71 +44,71 @@ html, body, .stApp { background-color: #0b1120 !important; }
 }
 .header-title {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 3.2rem;
+    font-size: 3.5rem;
     color: #ffffff;
-    letter-spacing: 3px;
+    letter-spacing: 4px;
     line-height: 1;
     margin-bottom: 0.6rem;
 }
 .header-title span { color: #c9a84c; }
 .header-info {
     font-family: 'Barlow', sans-serif;
-    font-size: 0.78rem;
-    color: #4a6080;
+    font-size: 0.82rem;
+    color: #a0b4c8;
 }
 
 .metrics {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-bottom: 1.5rem;
+    gap: 12px;
+    margin-bottom: 1.8rem;
 }
 .metric {
-    background: #0e1829;
-    border: 1px solid #1a2a40;
-    border-radius: 10px;
-    padding: 1rem;
+    background: #1a2e45;
+    border: 1px solid #2a4060;
+    border-radius: 12px;
+    padding: 1.2rem;
     text-align: center;
 }
 .metric-val {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 2.2rem;
+    font-size: 2.4rem;
     color: #c9a84c;
     line-height: 1;
 }
-.metric-val.white { color: #ffffff; }
-.metric-val.yellow { color: #f0c040; }
+.metric-val.blanco { color: #ffffff; }
+.metric-val.amarillo { color: #ffd166; }
 .metric-lbl {
     font-family: 'Barlow', sans-serif;
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     font-weight: 600;
-    color: #3a5070;
+    color: #a0b4c8;
     text-transform: uppercase;
     letter-spacing: 2px;
-    margin-top: 4px;
+    margin-top: 6px;
 }
 
 .section-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin: 1.5rem 0 0.8rem;
-    padding-bottom: 0.6rem;
-    border-bottom: 1px solid #1a2a40;
+    gap: 12px;
+    margin: 1.8rem 0 1rem;
+    padding-bottom: 0.7rem;
+    border-bottom: 2px solid #2a4060;
 }
 .section-badge {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     letter-spacing: 2px;
-    padding: 3px 10px;
-    border-radius: 4px;
+    padding: 4px 12px;
+    border-radius: 5px;
     background: #c9a84c;
-    color: #0b1120;
+    color: #0d1b2a;
 }
 .section-badge.marg {
-    background: #2a2000;
-    color: #f0c040;
-    border: 1px solid #3a3000;
+    background: #2a3a00;
+    color: #ffd166;
+    border: 1px solid #4a5a00;
 }
 .section-label {
     font-family: 'Bebas Neue', sans-serif;
@@ -129,120 +118,122 @@ html, body, .stApp { background-color: #0b1120 !important; }
 }
 
 .bet {
-    background: #0e1829;
-    border: 1px solid #1a2a40;
-    border-left: 3px solid #c9a84c;
+    background: #1a2e45;
+    border: 1px solid #2a4060;
+    border-left: 4px solid #c9a84c;
     border-radius: 10px;
-    padding: 1rem 1.2rem;
-    margin-bottom: 0.6rem;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 0.8rem;
     display: grid;
     grid-template-columns: 1fr auto;
-    gap: 1.5rem;
+    gap: 2rem;
     align-items: center;
 }
-.bet.marg { border-left-color: #f0c040; opacity: 0.85; }
+.bet.marg { border-left-color: #ffd166; }
 
-.bet-match {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.25rem;
-    color: #ffffff;
-    letter-spacing: 1px;
-    margin-bottom: 3px;
-}
 .bet-league {
     font-family: 'Barlow', sans-serif;
     font-size: 0.72rem;
-    color: #3a5070;
+    font-weight: 700;
+    color: #a0b4c8;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
+    letter-spacing: 2px;
+    margin-bottom: 5px;
+}
+.bet-match {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    color: #ffffff;
+    letter-spacing: 1px;
     margin-bottom: 8px;
+    line-height: 1.1;
 }
 .bet-market-pill {
     display: inline-block;
-    background: #0b1828;
+    background: #0d1b2a;
     border: 1px solid #c9a84c;
     border-radius: 20px;
-    padding: 3px 12px;
+    padding: 4px 14px;
     font-family: 'Barlow', sans-serif;
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     font-weight: 600;
     color: #c9a84c;
 }
 .bet-market-pill.marg {
-    border-color: #3a3000;
-    color: #f0c040;
+    border-color: #ffd166;
+    color: #ffd166;
 }
 .bet-date {
     font-family: 'Barlow', sans-serif;
-    font-size: 0.7rem;
-    color: #3a5070;
-    margin-top: 6px;
+    font-size: 0.72rem;
+    color: #a0b4c8;
+    margin-top: 8px;
 }
 
-.bet-right { text-align: right; min-width: 110px; }
+.bet-right { text-align: right; min-width: 120px; }
 .bet-odds {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 2.4rem;
+    font-size: 2.8rem;
     color: #c9a84c;
     line-height: 1;
 }
 .bet-edge {
     font-family: 'Barlow', sans-serif;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #4caf82;
-    margin-top: 3px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #4cdb82;
+    margin-top: 4px;
 }
 .bet-ev {
     font-family: 'Barlow', sans-serif;
-    font-size: 0.68rem;
-    color: #3a5070;
-    margin-top: 2px;
+    font-size: 0.72rem;
+    color: #a0b4c8;
+    margin-top: 3px;
 }
 .bet-kelly {
     font-family: 'Barlow', sans-serif;
-    font-size: 0.72rem;
-    font-weight: 600;
+    font-size: 0.78rem;
+    font-weight: 700;
     color: #ffffff;
-    margin-top: 4px;
-    background: #1a2a40;
-    padding: 2px 8px;
-    border-radius: 4px;
+    margin-top: 6px;
+    background: #0d1b2a;
+    border: 1px solid #2a4060;
+    padding: 3px 10px;
+    border-radius: 5px;
     display: inline-block;
 }
 
 .empty {
     text-align: center;
-    padding: 2.5rem;
-    border: 1px dashed #1a2a40;
+    padding: 3rem;
+    border: 1px dashed #2a4060;
     border-radius: 10px;
     font-family: 'Barlow', sans-serif;
-    font-size: 0.85rem;
-    color: #2a3a50;
+    font-size: 0.9rem;
+    color: #a0b4c8;
     letter-spacing: 2px;
     text-transform: uppercase;
 }
 
 div[data-testid="stButton"] > button {
     background: #c9a84c !important;
-    color: #0b1120 !important;
+    color: #0d1b2a !important;
     font-family: 'Bebas Neue', sans-serif !important;
-    font-size: 1.1rem !important;
-    letter-spacing: 4px !important;
+    font-size: 1.2rem !important;
+    letter-spacing: 5px !important;
     border: none !important;
     border-radius: 8px !important;
-    padding: 0.75rem !important;
+    padding: 0.8rem !important;
     width: 100% !important;
-    transition: opacity 0.2s !important;
 }
-div[data-testid="stButton"] > button:hover { opacity: 0.88 !important; }
+div[data-testid="stButton"] > button:hover { opacity: 0.85 !important; }
 
 .stDownloadButton > button {
     background: transparent !important;
     color: #c9a84c !important;
-    border: 1px solid #1a2a40 !important;
+    border: 1px solid #2a4060 !important;
     font-family: 'Barlow', sans-serif !important;
-    font-size: 0.78rem !important;
+    font-size: 0.8rem !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -250,9 +241,9 @@ div[data-testid="stButton"] > button:hover { opacity: 0.88 !important; }
 now = datetime.now()
 st.markdown(f"""
 <div class="header">
-    <div class="header-eyebrow">Fútbol · Tenis · Winamax FR</div>
+    <div class="header-eyebrow">⚽ Fútbol · 🎾 Tenis · Winamax FR</div>
     <div class="header-title">Value Bets <span>Scanner</span></div>
-    <div class="header-info">{now.strftime('%A %d %B %Y')} &nbsp;·&nbsp; Bankroll €{BANKROLL} &nbsp;·&nbsp; Edge mín. {MIN_EDGE}%</div>
+    <div class="header-info">{now.strftime('%A %d %B %Y')} &nbsp;·&nbsp; Bankroll €{BANKROLL} &nbsp;·&nbsp; Edge mínimo {MIN_EDGE}%</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -293,7 +284,7 @@ if st.button("⚽  ESCANEAR HOY"):
                 <div class="metric-lbl">Value Bets</div>
             </div>
             <div class="metric">
-                <div class="metric-val yellow">{len(marg)}</div>
+                <div class="metric-val amarillo">{len(marg)}</div>
                 <div class="metric-lbl">Marginales</div>
             </div>
             <div class="metric">
@@ -301,7 +292,7 @@ if st.button("⚽  ESCANEAR HOY"):
                 <div class="metric-lbl">Kelly Total</div>
             </div>
             <div class="metric">
-                <div class="metric-val white" style="font-size:1.5rem">{now.strftime('%H:%M')}</div>
+                <div class="metric-val blanco" style="font-size:1.6rem">{now.strftime('%H:%M')}</div>
                 <div class="metric-lbl">Escaneado</div>
             </div>
         </div>
@@ -329,14 +320,12 @@ if st.button("⚽  ESCANEAR HOY"):
                     <div>
                         <div class="bet-league">{icon} {b['league']}</div>
                         <div class="bet-match">{b['match']}</div>
-                        <div>
-                            <span class="bet-market-pill {css}">{b['market']}</span>
-                        </div>
-                        <div class="bet-date">{fecha}</div>
+                        <span class="bet-market-pill {css}">{b['market']}</span>
+                        <div class="bet-date">📅 {fecha}</div>
                     </div>
                     <div class="bet-right">
                         <div class="bet-odds">{b['odds']}</div>
-                        <div class="bet-edge">+{b['edge']:.1f}% edge</div>
+                        <div class="bet-edge">▲ +{b['edge']:.1f}% edge</div>
                         <div class="bet-ev">EV/10€: +{b['ev_10']:.2f}€</div>
                         <div class="bet-kelly">Kelly {kelly_str}</div>
                     </div>
