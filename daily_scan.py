@@ -18,8 +18,9 @@ from rich.console import Console
 from rich.panel import Panel
 
 sys.path.insert(0, "/Users/lucasfdezortiz/value-bets")
-from modules.scanner        import scan_value_bets
-from modules.tennis_scanner import scan_tennis_value_bets
+from modules.scanner            import scan_value_bets
+from modules.tennis_scanner     import scan_tennis_value_bets
+from modules.world_cup_scanner  import scan_world_cup_value_bets
 
 ODDS_API_KEY  = "2e0cc7717f96a25817a3c781429437b8"
 BANKROLL      = 200.0
@@ -85,6 +86,8 @@ def print_section(items: list[dict], title: str, color: str, show_hitrate: bool 
         sport = b.get("sport", "football")
         if sport == "tennis":
             tag = "[🎾]"
+        elif sport == "world_cup":
+            tag = "[🏆 DNB]" if b.get("is_dnb") else "[🏆]"
         elif b.get("is_dnb"):
             tag = "[DNB]"
         else:
@@ -110,7 +113,8 @@ def run():
     now = datetime.now().strftime("%d/%m/%Y %H:%M")
     console.print(Panel(
         f"[bold white]VALUE BETS — ESTRATEGIA ALTA CONVICCIÓN[/bold white]\n"
-        f"[dim]{now}  |  Filtro: cuota ≤ {MAX_ODDS_CONVICTION} · prob modelo ≥ {MIN_MODEL_PROB}% · edge ≥ {MIN_EDGE_CONVICTION}%  |  "
+        f"[dim]{now}  |  ⚽ Fútbol · 🎾 Tenis · 🏆 Mundial 2026  |  "
+        f"Filtro: cuota ≤ {MAX_ODDS_CONVICTION} · prob modelo ≥ {MIN_MODEL_PROB}% · edge ≥ {MIN_EDGE_CONVICTION}%  |  "
         f"Winamax FR · Bankroll: €{BANKROLL}[/dim]",
         border_style="bright_blue", expand=False,
     ))
@@ -137,7 +141,16 @@ def run():
         bankroll=BANKROLL,
     )
 
-    all_bets = football_bets + tennis_bets
+    # ── Mundial 2026 (Pinnacle como referencia, sin tabla de liga) ──────────
+    console.print("\n[bold cyan]🏆  Escaneando Mundial 2026...[/bold cyan]")
+    world_cup_bets = scan_world_cup_value_bets(
+        odds_api_key=ODDS_API_KEY,
+        days_ahead=max(DAYS_AHEAD, 7),   # el calendario del Mundial es más amplio
+        min_edge=MIN_EDGE_WATCH,
+        bankroll=BANKROLL,
+    )
+
+    all_bets = football_bets + tennis_bets + world_cup_bets
 
     if not all_bets:
         console.print(f"\n[yellow]Sin value bets hoy.[/yellow]")
@@ -206,11 +219,15 @@ def run():
         )
 
     # ── Resumen ──────────────────────────────────────────────────────────────
-    kelly_total  = sum(b["kelly"] for b in conviction)
-    futbol_c     = sum(1 for b in conviction if b.get("sport") != "tennis")
-    tenis_c      = sum(1 for b in conviction if b.get("sport") == "tennis")
-    he_futbol    = sum(1 for b in high_edge if b.get("sport") != "tennis")
-    he_tenis     = sum(1 for b in high_edge if b.get("sport") == "tennis")
+    def _counts(items):
+        f = sum(1 for b in items if b.get("sport") in (None, "football"))
+        t = sum(1 for b in items if b.get("sport") == "tennis")
+        m = sum(1 for b in items if b.get("sport") == "world_cup")
+        return f, t, m
+
+    kelly_total = sum(b["kelly"] for b in conviction)
+    futbol_c, tenis_c, mundial_c       = _counts(conviction)
+    he_futbol, he_tenis, he_mundial    = _counts(high_edge)
 
     console.print(f"\n[bold]{'━'*115}[/bold]")
     if conviction:
@@ -218,7 +235,7 @@ def run():
         avg_edge = sum(b["edge"]  for b in conviction) / len(conviction)
         console.print(
             f"  [bold green]🎯 CONVICCIÓN: {len(conviction)}[/bold green]  "
-            f"[dim](⚽ {futbol_c}  🎾 {tenis_c})[/dim]  "
+            f"[dim](⚽ {futbol_c}  🎾 {tenis_c}  🏆 {mundial_c})[/dim]  "
             f"  Hit rate medio: [bold green]{avg_hit:.1f}%[/bold green]  "
             f"  Edge medio: [bold green]+{avg_edge:.1f}%[/bold green]  "
             f"  Kelly total: [bold green]€{kelly_total:.2f}[/bold green]"
@@ -227,7 +244,7 @@ def run():
         he_avg_edge = sum(b["edge"] for b in high_edge) / len(high_edge)
         console.print(
             f"  [bold yellow]⚡ ALTO EDGE:   {len(high_edge)}[/bold yellow]  "
-            f"[dim](⚽ {he_futbol}  🎾 {he_tenis})[/dim]  "
+            f"[dim](⚽ {he_futbol}  🎾 {he_tenis}  🏆 {he_mundial})[/dim]  "
             f"  Edge medio: [bold yellow]+{he_avg_edge:.1f}%[/bold yellow]"
         )
     if watch:
