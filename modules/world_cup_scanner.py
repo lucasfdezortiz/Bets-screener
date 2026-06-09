@@ -227,6 +227,74 @@ def _analyze_match(match: dict, bankroll: float) -> list[dict]:
 # Escáner principal del Mundial
 # ---------------------------------------------------------------------------
 
+def get_world_cup_projections(
+    odds_api_key: str,
+    days_ahead:   int   = 7,
+) -> list[dict]:
+    """
+    Devuelve todos los partidos del Mundial con análisis completo de probabilidades,
+    cuotas, DNB y margen de seguridad. Usado para la sección de Pronósticos.
+    Sin filtro de edge — muestra todos los partidos disponibles.
+    """
+    matches = _fetch_world_cup_odds(odds_api_key, days_ahead)
+    projections = []
+
+    for match in matches:
+        home = match["home_team"]
+        away = match["away_team"]
+        kick = match["commence_time"][:16].replace("T", " ")
+
+        sharp_raw = _extract_1x2(match, SHARP_BM)
+        target    = _target_odds(match)
+        if not sharp_raw or not target:
+            continue
+
+        probs = _remove_overround(sharp_raw)
+        p_h, p_a, p_d = probs["home_win"], probs["away_win"], probs["draw"]
+
+        dnb_h, dnb_a = _derive_dnb_odds(
+            target["home_win"], target["draw"], target["away_win"]
+        )
+
+        p_h_dnb = p_h / (p_h + p_a) if (p_h + p_a) > 0 else 0.5
+        p_a_dnb = p_a / (p_h + p_a) if (p_h + p_a) > 0 else 0.5
+
+        # Favorito
+        if p_h >= p_a:
+            fav, fav_prob, fav_odds = home, p_h, target["home_win"]
+            fav_dnb_odds, fav_dnb_prob = dnb_h, p_h_dnb
+        else:
+            fav, fav_prob, fav_odds = away, p_a, target["away_win"]
+            fav_dnb_odds, fav_dnb_prob = dnb_a, p_a_dnb
+
+        gap_win = round(fav_prob * 100 - 100 / fav_odds, 1)
+        gap_dnb = round(fav_dnb_prob * 100 - 100 / fav_dnb_odds, 1)
+
+        projections.append({
+            "kickoff":      kick,
+            "home":         home,
+            "away":         away,
+            "match":        f"{home} vs {away}",
+            "home_prob":    round(p_h * 100, 1),
+            "draw_prob":    round(p_d * 100, 1),
+            "away_prob":    round(p_a * 100, 1),
+            "home_odds":    target["home_win"],
+            "draw_odds":    target["draw"],
+            "away_odds":    target["away_win"],
+            "fav":          fav,
+            "fav_prob":     round(fav_prob * 100, 1),
+            "fav_odds":     fav_odds,
+            "fav_dnb_odds": fav_dnb_odds,
+            "fav_dnb_prob": round(fav_dnb_prob * 100, 1),
+            "gap_win":      gap_win,
+            "gap_dnb":      gap_dnb,
+        })
+
+    # Ordenar por menor margen negativo (más "justos" primero)
+    projections.sort(key=lambda x: x["gap_win"], reverse=True)
+    return projections
+
+
 def scan_world_cup_value_bets(
     odds_api_key: str,
     days_ahead:   int   = 7,
