@@ -4,12 +4,17 @@ from datetime import datetime
 
 ODDS_API_KEY        = "2e0cc7717f96a25817a3c781429437b8"
 BANKROLL            = 200.0
-MIN_EDGE_WATCH      = 3.0
 DAYS_AHEAD          = 3
 BOOKMAKER           = "winamax_fr"
-MAX_ODDS_CONVICTION = 1.75
-MIN_MODEL_PROB      = 62.0
-MIN_EDGE_CONVICTION = 5.0
+
+# ── Filtros Convicción ───────────────────────────────────────────────────────
+MIN_ODDS_CONV  = 1.50   # cuota mínima (evitar odds irrisorias)
+MAX_ODDS_CONV  = 2.00   # cuota máxima (baja varianza)
+MIN_PROB_CONV  = 60.0   # % mínimo del modelo
+MIN_EDGE_CONV  = 5.0    # edge mínimo para convicción
+
+# ── Filtros Value Bets generales ─────────────────────────────────────────────
+MIN_EDGE_ALL   = 3.0    # edge mínimo para aparecer en el scanner general
 
 FOOTBALL_LEAGUES = [
     "soccer_spain_la_liga",
@@ -23,426 +28,277 @@ FOOTBALL_LEAGUES = [
 
 st.set_page_config(page_title="Value Bets Scanner", page_icon="🏆", layout="wide")
 
+# ════════════════════════════════════════════════════════════════════════════
+# CSS — Tema Estadio Nocturno
+# ════════════════════════════════════════════════════════════════════════════
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700;800&display=swap');
 
-/* ═══════════════════════════════════════════
-   FONDO — ESTADIO NOCTURNO
-═══════════════════════════════════════════ */
 html, body, .stApp {
     background-color: #04080f !important;
     background-image:
-        radial-gradient(ellipse 120% 60% at 50% -10%, rgba(18, 90, 40, 0.35) 0%, transparent 65%),
-        radial-gradient(ellipse 80% 40% at 20% 110%, rgba(8, 40, 80, 0.4) 0%, transparent 60%),
-        radial-gradient(ellipse 80% 40% at 80% 110%, rgba(8, 40, 80, 0.4) 0%, transparent 60%),
-        linear-gradient(180deg, #04080f 0%, #060d1a 50%, #04080f 100%) !important;
+        radial-gradient(ellipse 130% 55% at 50% -5%, rgba(15,90,35,0.30) 0%, transparent 60%),
+        radial-gradient(ellipse 70% 35% at 10% 105%, rgba(5,30,70,0.35) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 35% at 90% 105%, rgba(5,30,70,0.35) 0%, transparent 55%);
 }
-
-/* Líneas de campo sutiles en el fondo */
-.stApp::before {
-    content: '';
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-image:
-        repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 79px,
-            rgba(255,255,255,0.012) 79px,
-            rgba(255,255,255,0.012) 80px
-        );
-    pointer-events: none;
-    z-index: 0;
-}
-
-/* Ocultar decoración nativa de Streamlit */
 #MainMenu, footer, header { visibility: hidden; }
-.block-container { padding-top: 1.5rem !important; }
+.block-container { padding-top: 1.2rem !important; max-width: 1400px !important; }
 
-/* ═══════════════════════════════════════════
-   HEADER
-═══════════════════════════════════════════ */
-.header {
-    position: relative;
-    overflow: hidden;
-    border-radius: 16px;
-    padding: 2.4rem 2.8rem;
-    margin-bottom: 1.8rem;
-    background: linear-gradient(135deg, #071428 0%, #0a1f1a 50%, #071428 100%);
-    border: 1px solid rgba(212, 175, 55, 0.4);
-    box-shadow:
-        0 0 60px rgba(18, 90, 40, 0.25),
-        0 0 120px rgba(18, 90, 40, 0.1),
-        inset 0 1px 0 rgba(212,175,55,0.2);
+/* ── HEADER ── */
+.vb-header {
+    position: relative; overflow: hidden;
+    border-radius: 16px; padding: 2.2rem 2.8rem;
+    margin-bottom: 1.6rem;
+    background: linear-gradient(135deg, #071528 0%, #091e18 50%, #071528 100%);
+    border: 1px solid rgba(212,175,55,0.35);
+    box-shadow: 0 0 80px rgba(15,90,35,0.2), 0 0 120px rgba(5,30,70,0.2),
+                inset 0 1px 0 rgba(212,175,55,0.15);
 }
-/* Reflejo de hierba en header */
-.header::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background:
-        radial-gradient(ellipse 100% 80% at 50% 110%, rgba(18,120,50,0.3) 0%, transparent 60%),
-        radial-gradient(ellipse 40% 60% at 0% 50%, rgba(212,175,55,0.06) 0%, transparent 50%),
-        radial-gradient(ellipse 40% 60% at 100% 50%, rgba(212,175,55,0.06) 0%, transparent 50%);
-    pointer-events: none;
+.vb-header::before {
+    content:''; position:absolute; inset:0;
+    background: radial-gradient(ellipse 100% 70% at 50% 110%, rgba(15,110,45,0.25) 0%, transparent 55%);
+    pointer-events:none;
 }
-/* Patrón de líneas del campo en header */
-.header::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
+.vb-header::after {
+    content:''; position:absolute; inset:0;
     background-image: repeating-linear-gradient(
-        90deg, transparent, transparent 49px,
-        rgba(255,255,255,0.025) 49px, rgba(255,255,255,0.025) 50px
+        90deg, transparent, transparent 59px,
+        rgba(255,255,255,0.018) 59px, rgba(255,255,255,0.018) 60px
     );
-    pointer-events: none;
+    pointer-events:none;
 }
-.header-eyebrow {
-    font-family: 'Barlow', sans-serif;
-    font-size: 0.72rem; font-weight: 700;
-    letter-spacing: 5px; text-transform: uppercase;
-    color: #d4af37;
-    margin-bottom: 0.5rem;
-    position: relative; z-index: 1;
+.vb-eyebrow {
+    font-family:'Barlow',sans-serif; font-size:0.7rem; font-weight:700;
+    letter-spacing:5px; text-transform:uppercase; color:#d4af37;
+    margin-bottom:0.4rem; position:relative; z-index:1;
 }
-.header-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 4rem; color: #ffffff;
-    letter-spacing: 6px; line-height: 1;
-    margin-bottom: 0.7rem;
-    position: relative; z-index: 1;
-    text-shadow: 0 0 40px rgba(212,175,55,0.3), 0 2px 4px rgba(0,0,0,0.6);
+.vb-title {
+    font-family:'Bebas Neue',sans-serif; font-size:3.8rem; color:#fff;
+    letter-spacing:6px; line-height:1; margin-bottom:0.5rem;
+    position:relative; z-index:1;
+    text-shadow: 0 0 50px rgba(212,175,55,0.25);
 }
-.header-title span {
-    color: #d4af37;
-    text-shadow: 0 0 30px rgba(212,175,55,0.6);
+.vb-title span { color:#d4af37; text-shadow: 0 0 30px rgba(212,175,55,0.5); }
+.vb-info {
+    font-family:'Barlow',sans-serif; font-size:0.78rem; color:#5a7a95;
+    position:relative; z-index:1;
 }
-.header-info {
-    font-family: 'Barlow', sans-serif;
-    font-size: 0.8rem; color: #7a9ab5;
-    position: relative; z-index: 1;
-}
-.header-trophy {
-    position: absolute;
-    right: 2.5rem; top: 50%; transform: translateY(-50%);
-    font-size: 5rem; opacity: 0.15;
-    z-index: 1;
-    filter: drop-shadow(0 0 20px rgba(212,175,55,0.5));
+.vb-info b { color:#d4af37; }
+.vb-trophy {
+    position:absolute; right:2.5rem; top:50%; transform:translateY(-50%);
+    font-size:6rem; opacity:0.12; z-index:1;
+    filter: drop-shadow(0 0 15px rgba(212,175,55,0.4));
 }
 
-/* ═══════════════════════════════════════════
-   MÉTRICAS
-═══════════════════════════════════════════ */
-.metrics {
-    display: flex; gap: 12px;
-    margin-bottom: 2rem; flex-wrap: wrap;
+/* ── MÉTRICAS ── */
+.vb-metrics {
+    display:flex; gap:10px; margin-bottom:1.6rem; flex-wrap:wrap;
 }
-.metric {
-    flex: 1; min-width: 110px;
-    background: linear-gradient(145deg, #0d1e30, #08131e);
-    border: 1px solid #1a3050;
-    border-radius: 12px; padding: 1.1rem 1rem;
-    text-align: center;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    transition: transform 0.2s, box-shadow 0.2s;
+.vb-metric {
+    flex:1; min-width:100px;
+    background:linear-gradient(145deg,#0c1c2e,#08121e);
+    border:1px solid #162030; border-radius:12px;
+    padding:1rem 0.8rem; text-align:center;
 }
-.metric:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 28px rgba(0,0,0,0.4);
+.vb-metric.em { border-color:rgba(212,175,55,0.25); }
+.vm-val {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:2.6rem; line-height:1;
 }
-.metric.highlight { border-color: rgba(212,175,55,0.4); background: linear-gradient(145deg, #14200d, #0a1508); }
-.metric-val {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 2.6rem; line-height: 1;
-    color: #d4af37;
-}
-.metric-val.blanco   { color: #e8f0f8; }
-.metric-val.amarillo { color: #ffd166; text-shadow: 0 0 15px rgba(255,209,102,0.4); }
-.metric-val.verde    { color: #3dd878; text-shadow: 0 0 15px rgba(61,216,120,0.4); }
-.metric-val.oro      { color: #d4af37; text-shadow: 0 0 15px rgba(212,175,55,0.4); }
-.metric-lbl {
-    font-family: 'Barlow', sans-serif;
-    font-size: 0.65rem; font-weight: 700;
-    color: #4a6a85; text-transform: uppercase;
-    letter-spacing: 2px; margin-top: 6px;
+.vm-val.g  { color:#3dd878; text-shadow:0 0 12px rgba(61,216,120,0.3); }
+.vm-val.y  { color:#ffd166; text-shadow:0 0 12px rgba(255,209,102,0.3); }
+.vm-val.w  { color:#e8f0f8; }
+.vm-val.au { color:#d4af37; text-shadow:0 0 12px rgba(212,175,55,0.3); }
+.vm-lbl {
+    font-family:'Barlow',sans-serif; font-size:0.62rem; font-weight:700;
+    color:#3a5a75; text-transform:uppercase; letter-spacing:2px; margin-top:5px;
 }
 
-/* ═══════════════════════════════════════════
-   SECTION HEADERS
-═══════════════════════════════════════════ */
-.section-header {
-    display: flex; align-items: center; gap: 12px;
-    margin: 2rem 0 1rem;
-    padding-bottom: 0.8rem;
-    border-bottom: 1px solid #132035;
+/* ── SECTION HEADER ── */
+.vb-section {
+    display:flex; align-items:center; gap:12px;
+    margin:2rem 0 1rem;
+    padding-bottom:0.75rem;
+    border-bottom:1px solid #0f1e2e;
 }
-.section-badge {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 0.75rem; letter-spacing: 2px;
-    padding: 5px 14px; border-radius: 6px;
+.vb-badge {
+    font-family:'Bebas Neue',sans-serif; font-size:0.75rem;
+    letter-spacing:2px; padding:5px 14px; border-radius:6px; white-space:nowrap;
 }
-.section-badge.conviction { background: #3dd878; color: #04080f; }
-.section-badge.high       { background: #ffd166; color: #04080f; }
-.section-badge.watch      { background: transparent; color: #60c0ff; border: 1px solid rgba(96,192,255,0.5); }
-.section-badge.mundial    { background: linear-gradient(90deg, #d4af37, #f0d060); color: #04080f; }
-.section-label {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.1rem; color: #e8f0f8; letter-spacing: 3px;
+.vb-badge.conv { background:linear-gradient(90deg,#d4af37,#eecc44); color:#04080f; }
+.vb-badge.all  { background:linear-gradient(90deg,#3dd878,#2ac864); color:#04080f; }
+.vb-badge.wc   { background:linear-gradient(90deg,#c9a84c,#e0bc5a); color:#04080f; }
+.vb-section-title {
+    font-family:'Bebas Neue',sans-serif; font-size:1.15rem;
+    color:#e8f0f8; letter-spacing:3px;
 }
-.section-desc {
-    font-family: 'Barlow', sans-serif;
-    font-size: 0.7rem; color: #4a6a85; margin-left: auto;
+.vb-section-desc {
+    font-family:'Barlow',sans-serif; font-size:0.7rem;
+    color:#3a5a75; margin-left:auto; text-align:right;
 }
 
-/* ═══════════════════════════════════════════
-   TARJETAS DE APUESTAS
-═══════════════════════════════════════════ */
-.bet {
-    border-radius: 12px; padding: 1.2rem 1.6rem;
-    margin-bottom: 10px;
-    display: grid; grid-template-columns: 1fr auto;
-    gap: 2rem; align-items: center;
-    transition: transform 0.15s, box-shadow 0.15s;
+/* ── TARJETAS DE APUESTAS ── */
+.vb-card {
+    border-radius:11px; padding:1.1rem 1.5rem; margin-bottom:9px;
+    display:grid; grid-template-columns:1fr auto;
+    gap:1.5rem; align-items:center;
 }
-.bet:hover { transform: translateX(3px); }
+.vb-card.conv {
+    background:linear-gradient(135deg,#0d2215,#081a10);
+    border:1px solid rgba(212,175,55,0.2); border-left:4px solid #d4af37;
+    box-shadow:0 3px 20px rgba(212,175,55,0.06);
+}
+.vb-card.all {
+    background:linear-gradient(135deg,#091825,#060e1a);
+    border:1px solid #102030; border-left:4px solid #3dd878;
+}
+.vc-league { font-family:'Barlow',sans-serif; font-size:0.66rem; font-weight:700; color:#3a5a75; text-transform:uppercase; letter-spacing:2px; margin-bottom:4px; }
+.vc-match  { font-family:'Bebas Neue',sans-serif; font-size:1.4rem; color:#fff; letter-spacing:1.5px; margin-bottom:7px; line-height:1.1; }
+.vc-pill {
+    display:inline-block; border-radius:20px; padding:3px 14px;
+    font-family:'Barlow',sans-serif; font-size:0.78rem; font-weight:600;
+}
+.vc-pill.conv { background:rgba(212,175,55,0.1); border:1px solid rgba(212,175,55,0.35); color:#d4af37; }
+.vc-pill.all  { background:rgba(61,216,120,0.08); border:1px solid rgba(61,216,120,0.3); color:#3dd878; }
+.vc-stats { display:flex; gap:14px; margin-top:8px; flex-wrap:wrap; }
+.vc-stat  { font-family:'Barlow',sans-serif; font-size:0.7rem; color:#3a5a75; }
+.vc-stat span { color:#b0c8e0; font-weight:600; }
+.vc-date  { font-family:'Barlow',sans-serif; font-size:0.68rem; color:#2a4a65; margin-top:6px; }
+.vc-right { text-align:right; min-width:120px; }
+.vc-odds  { font-family:'Bebas Neue',sans-serif; font-size:3rem; line-height:1; }
+.vc-odds.conv { color:#d4af37; text-shadow:0 0 18px rgba(212,175,55,0.35); }
+.vc-odds.all  { color:#3dd878; text-shadow:0 0 18px rgba(61,216,120,0.3); }
+.vc-edge  { font-family:'Barlow',sans-serif; font-size:0.82rem; font-weight:800; margin-top:2px; }
+.vc-edge.conv { color:#d4af37; }
+.vc-edge.all  { color:#3dd878; }
+.vc-ev    { font-family:'Barlow',sans-serif; font-size:0.68rem; color:#3a5a75; margin-top:2px; }
+.vc-kelly { font-family:'Barlow',sans-serif; font-size:0.76rem; font-weight:700; color:#c8d8e8; margin-top:6px; background:rgba(255,255,255,0.04); border:1px solid #142030; padding:3px 10px; border-radius:6px; display:inline-block; }
 
-.bet.conviction {
-    background: linear-gradient(135deg, #071f10, #0a2814);
-    border: 1px solid rgba(61,216,120,0.25);
-    border-left: 4px solid #3dd878;
-    box-shadow: 0 4px 24px rgba(61,216,120,0.08), inset 0 1px 0 rgba(61,216,120,0.1);
+/* ── INFO BOX ── */
+.vb-info-box {
+    background:rgba(96,192,255,0.04);
+    border:1px solid rgba(96,192,255,0.15); border-radius:10px;
+    padding:0.9rem 1.3rem; margin-bottom:1rem;
+    font-family:'Barlow',sans-serif; font-size:0.76rem; color:#5a8aaa;
+    line-height:1.6;
 }
-.bet.high {
-    background: linear-gradient(135deg, #1a1a07, #221e08);
-    border: 1px solid rgba(255,209,102,0.2);
-    border-left: 4px solid #ffd166;
-    box-shadow: 0 4px 24px rgba(255,209,102,0.06);
-}
-.bet.watch {
-    background: linear-gradient(135deg, #07101a, #0a1520);
-    border: 1px solid rgba(96,192,255,0.15);
-    border-left: 4px solid rgba(96,192,255,0.5);
-    opacity: 0.9;
-}
+.vb-info-box b { color:#7ab0d0; }
 
-.bet-league {
-    font-family: 'Barlow', sans-serif; font-size: 0.68rem;
-    font-weight: 700; color: #4a6a85;
-    text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px;
-}
-.bet-match {
-    font-family: 'Bebas Neue', sans-serif; font-size: 1.45rem;
-    color: #ffffff; letter-spacing: 1.5px; margin-bottom: 8px; line-height: 1.1;
-}
-.bet-market-pill {
-    display: inline-block; border-radius: 20px;
-    padding: 4px 16px; font-family: 'Barlow', sans-serif;
-    font-size: 0.78rem; font-weight: 600;
-}
-.bet-market-pill.conviction { background: rgba(61,216,120,0.1); border: 1px solid rgba(61,216,120,0.4); color: #3dd878; }
-.bet-market-pill.high       { background: rgba(255,209,102,0.1); border: 1px solid rgba(255,209,102,0.4); color: #ffd166; }
-.bet-market-pill.watch      { background: rgba(96,192,255,0.08); border: 1px solid rgba(96,192,255,0.3); color: #60c0ff; }
-
-.bet-stats-row { display: flex; gap: 14px; margin-top: 9px; flex-wrap: wrap; }
-.bet-stat      { font-family: 'Barlow', sans-serif; font-size: 0.7rem; color: #4a6a85; }
-.bet-stat span { color: #c8d8e8; font-weight: 600; }
-.bet-date      { font-family: 'Barlow', sans-serif; font-size: 0.7rem; color: #3a5a75; margin-top: 7px; }
-
-.bet-right     { text-align: right; min-width: 130px; }
-.bet-odds      { font-family: 'Bebas Neue', sans-serif; font-size: 3rem; line-height: 1; }
-.bet-odds.conviction { color: #3dd878; text-shadow: 0 0 20px rgba(61,216,120,0.4); }
-.bet-odds.high       { color: #ffd166; text-shadow: 0 0 20px rgba(255,209,102,0.4); }
-.bet-odds.watch      { color: #60c0ff; }
-
-.bet-edge { font-family: 'Barlow', sans-serif; font-size: 0.82rem; font-weight: 800; margin-top: 3px; letter-spacing: 0.5px; }
-.bet-edge.conviction { color: #3dd878; }
-.bet-edge.high       { color: #ffd166; }
-.bet-edge.watch      { color: #60c0ff; }
-.bet-ev    { font-family: 'Barlow', sans-serif; font-size: 0.7rem; color: #4a6a85; margin-top: 3px; }
-.bet-kelly {
-    font-family: 'Barlow', sans-serif; font-size: 0.78rem; font-weight: 700;
-    color: #c8d8e8; margin-top: 7px;
-    background: rgba(255,255,255,0.05); border: 1px solid #1a3050;
-    padding: 3px 12px; border-radius: 6px; display: inline-block;
+/* ── VACÍO ── */
+.vb-empty {
+    text-align:center; padding:2.5rem;
+    border:1px dashed #0f1e2e; border-radius:12px;
+    font-family:'Barlow',sans-serif; font-size:0.8rem;
+    color:#2a4a65; letter-spacing:3px; text-transform:uppercase;
 }
 
-/* ═══════════════════════════════════════════
-   MUNDIAL — TOP 5
-═══════════════════════════════════════════ */
-.top5-header-note {
-    font-family: 'Barlow', sans-serif; font-size: 0.72rem;
-    color: #4a6a85; margin-bottom: 16px;
-    padding: 8px 14px; background: rgba(212,175,55,0.05);
-    border-left: 3px solid rgba(212,175,55,0.3);
-    border-radius: 0 6px 6px 0;
+/* ── TOP 5 MUNDIAL ── */
+.t5-note {
+    font-family:'Barlow',sans-serif; font-size:0.72rem; color:#3a5a75;
+    margin-bottom:14px; padding:8px 14px;
+    background:rgba(212,175,55,0.04); border-left:3px solid rgba(212,175,55,0.3);
+    border-radius:0 6px 6px 0; line-height:1.5;
 }
-.top5-row {
-    background: linear-gradient(135deg, #0a1828, #071220);
-    border: 1px solid #132035;
-    border-radius: 12px; padding: 1rem 1.4rem;
-    margin-bottom: 10px;
-    display: grid;
-    grid-template-columns: 52px 1fr 130px 130px 130px 130px;
-    align-items: center; gap: 10px;
-    transition: transform 0.15s;
+.t5-row {
+    background:linear-gradient(135deg,#0a1828,#060e1c);
+    border:1px solid #0f1e30; border-radius:11px;
+    padding:0.95rem 1.4rem; margin-bottom:9px;
+    display:grid;
+    grid-template-columns:50px 1fr 120px 120px 120px 120px;
+    align-items:center; gap:10px;
 }
-.top5-row:hover { transform: translateX(3px); }
-.top5-row.gold   { border-left: 4px solid #d4af37; background: linear-gradient(135deg, #14180a, #0e1408); }
-.top5-row.silver { border-left: 4px solid #9ca8b4; }
-.top5-row.bronze { border-left: 4px solid #a0632a; }
-.top5-row.norm   { border-left: 4px solid #1a3050; }
+.t5-row.g1 { border-left:4px solid #d4af37; background:linear-gradient(135deg,#141206,#0c0e04); }
+.t5-row.g2 { border-left:4px solid #9ca8b4; }
+.t5-row.g3 { border-left:4px solid #8c5e22; }
+.t5-row.gn { border-left:4px solid #142030; }
+.t5-medal { font-size:2rem; text-align:center; line-height:1; }
+.t5-match { font-family:'Bebas Neue',sans-serif; font-size:1.05rem; color:#e8f0f8; letter-spacing:1px; line-height:1.25; }
+.t5-date  { font-family:'Barlow',sans-serif; font-size:0.65rem; color:#2a4a65; margin-top:3px; }
+.t5-cell  { text-align:center; }
+.t5-lbl   { font-family:'Barlow',sans-serif; font-size:0.58rem; font-weight:700; color:#2a4a65; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:4px; }
+.t5-val   { font-family:'Bebas Neue',sans-serif; font-size:1.25rem; color:#e8f0f8; line-height:1; }
+.t5-val.au { color:#d4af37; text-shadow:0 0 10px rgba(212,175,55,0.35); }
+.t5-val.gn { color:#3dd878; }
+.t5-val.ye { color:#ffd166; }
+.t5-val.gr { color:#4a6a85; }
+.t5-sub   { font-family:'Barlow',sans-serif; font-size:0.6rem; color:#2a4a65; margin-top:2px; }
 
-.top5-medal {
-    font-size: 1.9rem; text-align: center; line-height: 1;
-    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+/* ── TABLA COMPLETA MUNDIAL ── */
+.wc-tbl-wrap { border-radius:12px; overflow:hidden; border:1px solid #0f1e30; box-shadow:0 8px 40px rgba(0,0,0,0.35); }
+.wc-tbl { width:100%; border-collapse:collapse; }
+.wc-tbl thead tr { background:#0a1828; border-bottom:2px solid rgba(212,175,55,0.15); }
+.wc-tbl thead th {
+    padding:11px 14px; font-family:'Barlow',sans-serif;
+    font-size:0.62rem; font-weight:700; color:#2a4a65;
+    text-transform:uppercase; letter-spacing:2px;
+    text-align:center; white-space:nowrap;
 }
-.top5-match  { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; color: #e8f0f8; letter-spacing: 1px; line-height: 1.2; }
-.top5-date   { font-family: 'Barlow', sans-serif; font-size: 0.67rem; color: #3a5a75; margin-top: 3px; }
-
-.top5-cell   { text-align: center; }
-.top5-lbl    { font-family: 'Barlow', sans-serif; font-size: 0.6rem; font-weight: 700; color: #3a5a75; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
-.top5-val    { font-family: 'Bebas Neue', sans-serif; font-size: 1.35rem; color: #e8f0f8; line-height: 1; }
-.top5-val.gold   { color: #d4af37; text-shadow: 0 0 12px rgba(212,175,55,0.4); }
-.top5-val.green  { color: #3dd878; text-shadow: 0 0 12px rgba(61,216,120,0.4); }
-.top5-val.yellow { color: #ffd166; text-shadow: 0 0 12px rgba(255,209,102,0.3); }
-.top5-val.grey   { color: #7a9ab5; }
-.top5-sub    { font-family: 'Barlow', sans-serif; font-size: 0.62rem; color: #3a5a75; margin-top: 2px; }
-
-/* ═══════════════════════════════════════════
-   MUNDIAL — TABLA COMPLETA
-═══════════════════════════════════════════ */
-.table-title {
-    font-family: 'Bebas Neue', sans-serif; font-size: 1rem;
-    color: #d4af37; letter-spacing: 4px;
-    margin: 2rem 0 0.6rem; display: flex; align-items: center; gap: 10px;
+.wc-tbl thead th:nth-child(1),
+.wc-tbl thead th:nth-child(2) { text-align:left; }
+.wc-tbl tbody tr { border-bottom:1px solid #080e18; transition:background 0.1s; }
+.wc-tbl tbody tr:hover { background:rgba(212,175,55,0.03); }
+.wc-tbl tbody tr:nth-child(even) { background:rgba(255,255,255,0.012); }
+.wc-tbl td {
+    padding:10px 14px; font-family:'Barlow',sans-serif;
+    font-size:0.76rem; color:#6a8aa4; text-align:center; vertical-align:middle;
 }
-.wc-table-wrap {
-    border-radius: 12px; overflow: hidden;
-    border: 1px solid #132035;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.4);
-}
-.wc-table { width: 100%; border-collapse: collapse; }
-
-.wc-table thead tr {
-    background: linear-gradient(90deg, #0d1e32, #0a1828);
-    border-bottom: 2px solid rgba(212,175,55,0.2);
-}
-.wc-table thead th {
-    padding: 12px 14px;
-    font-family: 'Barlow', sans-serif;
-    font-size: 0.65rem; font-weight: 700;
-    color: #4a6a85; text-transform: uppercase;
-    letter-spacing: 2px; text-align: center;
-    white-space: nowrap;
-}
-.wc-table thead th:first-child,
-.wc-table thead th:nth-child(2) { text-align: left; }
-
-.wc-table tbody tr {
-    border-bottom: 1px solid #0d1825;
-    transition: background 0.12s;
-}
-.wc-table tbody tr:hover { background: rgba(212,175,55,0.04); }
-.wc-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.015); }
-.wc-table tbody tr:nth-child(even):hover { background: rgba(212,175,55,0.05); }
-
-.wc-table td {
-    padding: 11px 14px;
-    font-family: 'Barlow', sans-serif;
-    font-size: 0.78rem; color: #8aaac4;
-    text-align: center; vertical-align: middle;
-}
-.wc-table td:nth-child(2) {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 0.95rem; color: #e8f0f8; letter-spacing: 0.5px;
-    text-align: left;
-}
-.wc-table td:first-child { text-align: left; color: #3a5a75; font-size: 0.7rem; white-space: nowrap; }
-
-.prob-hi  { color: #3dd878 !important; font-weight: 700; }
-.prob-med { color: #ffd166 !important; font-weight: 700; }
-.prob-lo  { color: #8aaac4; }
-
-.margin-ok  { color: #3dd878 !important; font-weight: 700; font-size: 0.78rem; }
-.margin-mid { color: #ffd166 !important; font-weight: 700; font-size: 0.78rem; }
-.margin-bad { color: #3a5a75; font-size: 0.75rem; }
-
-.fav-pill {
-    display: inline-block; padding: 3px 10px; border-radius: 5px;
-    font-family: 'Barlow', sans-serif; font-size: 0.7rem; font-weight: 700;
-    background: rgba(212,175,55,0.1); color: #d4af37;
-    border: 1px solid rgba(212,175,55,0.3); white-space: nowrap;
-}
-.dnb-pill {
-    display: inline-block; padding: 3px 9px; border-radius: 5px;
-    font-family: 'Bebas Neue', sans-serif; font-size: 0.82rem;
-    background: rgba(96,192,255,0.08); color: #60c0ff;
-    border: 1px solid rgba(96,192,255,0.25); white-space: nowrap;
-}
-
+.wc-tbl td:nth-child(1) { text-align:left; color:#2a4a65; font-size:0.68rem; white-space:nowrap; }
+.wc-tbl td:nth-child(2) { text-align:left; font-family:'Bebas Neue',sans-serif; font-size:0.92rem; color:#e0ecf8; letter-spacing:0.5px; }
+.ph { color:#3dd878 !important; font-weight:700; }
+.pm { color:#ffd166 !important; font-weight:700; }
+.mk-ok  { color:#3dd878 !important; font-weight:700; font-size:0.76rem; }
+.mk-mid { color:#ffd166 !important; font-weight:700; font-size:0.76rem; }
+.mk-bad { color:#2a4a65; font-size:0.73rem; }
+.fav-p { display:inline-block; padding:2px 9px; border-radius:5px; font-family:'Barlow',sans-serif; font-size:0.68rem; font-weight:700; background:rgba(212,175,55,0.08); color:#c9a030; border:1px solid rgba(212,175,55,0.25); }
+.dnb-p { display:inline-block; padding:2px 8px; border-radius:5px; font-family:'Bebas Neue',sans-serif; font-size:0.78rem; background:rgba(96,192,255,0.06); color:#4aa8d8; border:1px solid rgba(96,192,255,0.2); }
 .wc-legend {
-    background: rgba(255,255,255,0.02);
-    border: 1px solid #0d1825; border-top: none;
-    border-radius: 0 0 12px 12px;
-    padding: 10px 16px;
-    font-family: 'Barlow', sans-serif; font-size: 0.68rem;
-    color: #3a5a75; display: flex; gap: 22px; flex-wrap: wrap;
+    background:rgba(0,0,0,0.2); border-top:1px solid #080e18;
+    padding:9px 16px; font-family:'Barlow',sans-serif;
+    font-size:0.66rem; color:#2a4a65;
+    display:flex; gap:20px; flex-wrap:wrap;
 }
 
-/* ═══════════════════════════════════════════
-   MISCELÁNEA
-═══════════════════════════════════════════ */
-.empty {
-    text-align: center; padding: 2.5rem;
-    border: 1px dashed #132035; border-radius: 12px;
-    font-family: 'Barlow', sans-serif; font-size: 0.82rem;
-    color: #3a5a75; letter-spacing: 3px; text-transform: uppercase;
-}
-
+/* ── BOTÓN & DOWNLOAD ── */
 div[data-testid="stButton"] > button {
-    background: linear-gradient(135deg, #d4af37, #c49a22) !important;
-    color: #04080f !important;
-    font-family: 'Bebas Neue', sans-serif !important;
-    font-size: 1.25rem !important; letter-spacing: 6px !important;
-    border: none !important; border-radius: 10px !important;
-    padding: 0.9rem !important; width: 100% !important;
-    box-shadow: 0 4px 20px rgba(212,175,55,0.25) !important;
-    transition: opacity 0.2s, transform 0.1s !important;
+    background:linear-gradient(135deg,#d4af37,#b8952a) !important;
+    color:#04080f !important; font-family:'Bebas Neue',sans-serif !important;
+    font-size:1.2rem !important; letter-spacing:6px !important;
+    border:none !important; border-radius:10px !important;
+    padding:0.85rem !important; width:100% !important;
+    box-shadow:0 4px 24px rgba(212,175,55,0.2) !important;
 }
 div[data-testid="stButton"] > button:hover {
-    opacity: 0.9 !important; transform: translateY(-1px) !important;
-    box-shadow: 0 6px 28px rgba(212,175,55,0.35) !important;
+    opacity:0.88 !important; transform:translateY(-1px) !important;
 }
 .stDownloadButton > button {
-    background: transparent !important; color: #4a6a85 !important;
-    border: 1px solid #132035 !important;
-    font-family: 'Barlow', sans-serif !important; font-size: 0.78rem !important;
-    border-radius: 8px !important;
+    background:transparent !important; color:#3a5a75 !important;
+    border:1px solid #0f1e30 !important; border-radius:8px !important;
+    font-family:'Barlow',sans-serif !important; font-size:0.76rem !important;
 }
-.stDownloadButton > button:hover { color: #d4af37 !important; border-color: rgba(212,175,55,0.3) !important; }
+.stDownloadButton > button:hover { color:#d4af37 !important; border-color:rgba(212,175,55,0.3) !important; }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ── Header ───────────────────────────────────────────────────────────────────
+# ── HEADER ──────────────────────────────────────────────────────────────────
 now = datetime.now()
 st.markdown(f"""
-<div class="header">
-    <div class="header-trophy">🏆</div>
-    <div class="header-eyebrow">⚽ Fútbol &nbsp;·&nbsp; 🎾 Tenis &nbsp;·&nbsp; 🏆 Mundial 2026 &nbsp;·&nbsp; Winamax FR</div>
-    <div class="header-title">Value Bets <span>Scanner</span></div>
-    <div class="header-info">
+<div class="vb-header">
+    <div class="vb-trophy">🏆</div>
+    <div class="vb-eyebrow">⚽ Ligas Europeas &nbsp;·&nbsp; 🎾 Tenis ATP/WTA &nbsp;·&nbsp; 🏆 Mundial 2026 &nbsp;·&nbsp; Winamax FR</div>
+    <div class="vb-title">Value Bets <span>Scanner</span></div>
+    <div class="vb-info">
         {now.strftime('%A %d %B %Y').capitalize()} &nbsp;&nbsp;|&nbsp;&nbsp;
-        Bankroll <b style="color:#d4af37">€{BANKROLL}</b> &nbsp;&nbsp;|&nbsp;&nbsp;
-        Edge mínimo <b style="color:#d4af37">{MIN_EDGE_WATCH}%</b> &nbsp;&nbsp;|&nbsp;&nbsp;
-        Modelo: Poisson (fútbol) · Pinnacle sharp (tenis &amp; Mundial)
+        Bankroll <b>€{BANKROLL}</b> &nbsp;&nbsp;|&nbsp;&nbsp;
+        Modelo: Poisson (fútbol) · Pinnacle sharp (tenis &amp; Mundial) &nbsp;&nbsp;|&nbsp;&nbsp;
+        Target: <b>Winamax FR</b>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
 
-# ── Botón ────────────────────────────────────────────────────────────────────
+# ── BOTÓN ────────────────────────────────────────────────────────────────────
 if st.button("🔍  ESCANEAR APUESTAS DE HOY"):
     import sys
     sys.path.insert(0, "/mount/src/bets-screener")
@@ -453,235 +309,279 @@ if st.button("🔍  ESCANEAR APUESTAS DE HOY"):
     with st.spinner("⚽  Escaneando ligas de fútbol..."):
         football_bets = scan_value_bets(
             odds_api_key=ODDS_API_KEY, leagues=FOOTBALL_LEAGUES,
-            days_ahead=DAYS_AHEAD, min_edge=MIN_EDGE_WATCH,
+            days_ahead=DAYS_AHEAD, min_edge=MIN_EDGE_ALL,
             bookmaker=BOOKMAKER, bankroll=BANKROLL,
         )
         for b in football_bets:
             b.setdefault("sport", "football")
 
-    with st.spinner("🎾  Escaneando torneos de tenis..."):
+    with st.spinner("🎾  Escaneando tenis ATP/WTA..."):
         tennis_bets = scan_tennis_value_bets(
             odds_api_key=ODDS_API_KEY, days_ahead=DAYS_AHEAD,
-            min_edge=MIN_EDGE_WATCH, bankroll=BANKROLL,
+            min_edge=MIN_EDGE_ALL, bankroll=BANKROLL,
         )
 
     with st.spinner("🏆  Escaneando Mundial 2026..."):
         world_cup_bets = scan_world_cup_value_bets(
             odds_api_key=ODDS_API_KEY, days_ahead=7,
-            min_edge=MIN_EDGE_WATCH, bankroll=BANKROLL,
+            min_edge=MIN_EDGE_ALL, bankroll=BANKROLL,
         )
         wc_proj = get_world_cup_projections(odds_api_key=ODDS_API_KEY, days_ahead=7)
 
     all_bets = football_bets + tennis_bets + world_cup_bets
+    all_bets.sort(key=lambda x: x["edge"], reverse=True)
 
     # ── Clasificar ───────────────────────────────────────────────────────────
-    conviction = [
+    # CONVICCIÓN: cuota 1.50–2.00 + prob alta + edge alto
+    conv = [
         b for b in all_bets
-        if b["odds"] <= MAX_ODDS_CONVICTION
-        and b["model"] >= MIN_MODEL_PROB
-        and b["edge"] >= MIN_EDGE_CONVICTION
+        if b["odds"] >= MIN_ODDS_CONV
+        and b["odds"] <= MAX_ODDS_CONV
+        and b["model"] >= MIN_PROB_CONV
+        and b["edge"]  >= MIN_EDGE_CONV
     ]
-    conviction.sort(key=lambda x: x["edge"] * x["model"] / 100, reverse=True)
+    conv.sort(key=lambda x: x["edge"] * x["model"] / 100, reverse=True)
 
-    high_edge = [
-        b for b in all_bets
-        if b not in conviction
-        and b["edge"] >= MIN_EDGE_CONVICTION
-        and b["verdict"] in ("VALUE BET", "MARGINAL")
-    ]
-    high_edge.sort(key=lambda x: x["edge"], reverse=True)
+    # VALUE BETS: todo lo que tiene edge ≥ 3% (excluye ya listados en conv)
+    value = [b for b in all_bets if b["edge"] >= MIN_EDGE_ALL and b not in conv]
 
-    watch = [
-        b for b in all_bets
-        if b not in conviction and b not in high_edge
-        and b["edge"] >= MIN_EDGE_WATCH
-        and b["verdict"] in ("VALUE BET", "MARGINAL")
-        and b["odds"] <= 3.00
-    ]
-    watch.sort(key=lambda x: x["edge"], reverse=True)
+    total_kelly = sum(b["kelly"] for b in conv)
+    wc_value    = len([b for b in all_bets if b.get("sport") == "world_cup"])
 
-    total_kelly = sum(b["kelly"] for b in conviction)
-
-    # ── Métricas ──────────────────────────────────────────────────────────────
+    # ── MÉTRICAS ─────────────────────────────────────────────────────────────
     st.markdown(f"""
-    <div class="metrics">
-        <div class="metric highlight">
-            <div class="metric-val verde">{len(conviction)}</div>
-            <div class="metric-lbl">🎯 Alta Convicción</div>
+    <div class="vb-metrics">
+        <div class="vb-metric em">
+            <div class="vm-val au">{len(conv)}</div>
+            <div class="vm-lbl">🎯 Alta Convicción</div>
         </div>
-        <div class="metric">
-            <div class="metric-val amarillo">{len(high_edge)}</div>
-            <div class="metric-lbl">⚡ Alto Edge</div>
+        <div class="vb-metric">
+            <div class="vm-val g">{len(value)}</div>
+            <div class="vm-lbl">⚡ Value Bets</div>
         </div>
-        <div class="metric">
-            <div class="metric-val blanco">{len(watch)}</div>
-            <div class="metric-lbl">👁 Vigilancia</div>
+        <div class="vb-metric">
+            <div class="vm-val w">{len(all_bets)}</div>
+            <div class="vm-lbl">📊 Total con Edge</div>
         </div>
-        <div class="metric">
-            <div class="metric-val oro">{len(wc_proj)}</div>
-            <div class="metric-lbl">🏆 Partidos Mundial</div>
+        <div class="vb-metric">
+            <div class="vm-val au">{len(wc_proj)}</div>
+            <div class="vm-lbl">🏆 Partidos Mundial</div>
         </div>
-        <div class="metric highlight">
-            <div class="metric-val verde">€{total_kelly:.0f}</div>
-            <div class="metric-lbl">Kelly Total</div>
+        <div class="vb-metric em">
+            <div class="vm-val g">€{total_kelly:.0f}</div>
+            <div class="vm-lbl">Kelly Convicción</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Render secciones de apuestas ─────────────────────────────────────────
-    def render_section(bets, css, badge_css, badge_text, label, desc):
-        st.markdown(f"""
-        <div class="section-header">
-            <span class="section-badge {badge_css}">{badge_text}</span>
-            <span class="section-label">{label}</span>
-            <span class="section-desc">{desc}</span>
-        </div>""", unsafe_allow_html=True)
+    # ════════════════════════════════════════════════════════════════════════
+    # SCANNER 1 — ALTA CONVICCIÓN
+    # ════════════════════════════════════════════════════════════════════════
+    st.markdown(f"""
+    <div class="vb-section">
+        <span class="vb-badge conv">🎯 SCANNER 1</span>
+        <span class="vb-section-title">ALTA CONVICCIÓN — APOSTAR FUERTE</span>
+        <span class="vb-section-desc">Cuota {MIN_ODDS_CONV}–{MAX_ODDS_CONV} · Prob ≥ {MIN_PROB_CONV}% · Edge ≥ {MIN_EDGE_CONV}% · Ordenado por conviction score</span>
+    </div>
+    """, unsafe_allow_html=True)
 
-        if not bets:
-            st.markdown('<div class="empty">Sin apuestas en esta categoría hoy</div>',
-                        unsafe_allow_html=True)
-            return
-
+    if not conv:
+        st.markdown('<div class="vb-empty">Sin apuestas de alta convicción hoy</div>', unsafe_allow_html=True)
+    else:
         cards = ""
-        for b in bets:
+        for b in conv:
             dt    = b["kickoff"]
             fecha = f"{dt[5:10]}  ·  {dt[11:16]}" if len(dt) > 10 else dt
-            sport = b.get("sport", "football")
-            icon  = "🎾" if sport == "tennis" else ("🏆" if sport == "world_cup" else "⚽")
-            kelly_str = f"€{b['kelly']:.2f}" if b["kelly"] > 0 else "—"
-            breakeven = round(100 / b["odds"], 1)
+            sport = b.get("sport","football")
+            icon  = "🎾" if sport=="tennis" else ("🏆" if sport=="world_cup" else "⚽")
+            kelly = f"€{b['kelly']:.2f}" if b["kelly"]>0 else "—"
+            be    = round(100/b["odds"],1)
+            score = round(b["edge"] * b["model"] / 100, 1)
             cards += f"""
-            <div class="bet {css}">
+            <div class="vb-card conv">
                 <div>
-                    <div class="bet-league">{icon}&nbsp; {b['league']}</div>
-                    <div class="bet-match">{b['match']}</div>
-                    <span class="bet-market-pill {css}">{b['market']}</span>
-                    <div class="bet-stats-row">
-                        <span class="bet-stat">Modelo: <span>{b['model']:.1f}%</span></span>
-                        <span class="bet-stat">Break-even: <span>{breakeven}%</span></span>
-                        <span class="bet-stat">Prob implícita: <span>{b['implied']:.1f}%</span></span>
+                    <div class="vc-league">{icon}&nbsp; {b['league']}</div>
+                    <div class="vc-match">{b['match']}</div>
+                    <span class="vc-pill conv">{b['market']}</span>
+                    <div class="vc-stats">
+                        <span class="vc-stat">Modelo: <span>{b['model']:.1f}%</span></span>
+                        <span class="vc-stat">Break-even: <span>{be}%</span></span>
+                        <span class="vc-stat">Impl. Winamax: <span>{b['implied']:.1f}%</span></span>
+                        <span class="vc-stat">Conviction Score: <span>{score}</span></span>
                     </div>
-                    <div class="bet-date">📅 {fecha}</div>
+                    <div class="vc-date">📅 {fecha}</div>
                 </div>
-                <div class="bet-right">
-                    <div class="bet-odds {css}">{b['odds']}</div>
-                    <div class="bet-edge {css}">▲ +{b['edge']:.1f}% edge</div>
-                    <div class="bet-ev">EV / 10€ &nbsp;+{b['ev_10']:.2f}€</div>
-                    <div class="bet-kelly">Kelly &nbsp;{kelly_str}</div>
+                <div class="vc-right">
+                    <div class="vc-odds conv">{b['odds']}</div>
+                    <div class="vc-edge conv">▲ +{b['edge']:.1f}% edge</div>
+                    <div class="vc-ev">EV / 10€ &nbsp;+{b['ev_10']:.2f}€</div>
+                    <div class="vc-kelly">Kelly &nbsp;{kelly}</div>
                 </div>
             </div>"""
         st.markdown(cards, unsafe_allow_html=True)
 
-    render_section(conviction, "conviction", "conviction",
-        "🎯 ALTA CONVICCIÓN", f"{len(conviction)} apuestas — APOSTAR FUERTE",
-        f"Cuota ≤ {MAX_ODDS_CONVICTION} · Prob ≥ {MIN_MODEL_PROB}% · Edge ≥ {MIN_EDGE_CONVICTION}%")
+    # ════════════════════════════════════════════════════════════════════════
+    # SCANNER 2 — TODOS LOS VALUE BETS
+    # ════════════════════════════════════════════════════════════════════════
+    st.markdown(f"""
+    <div class="vb-section">
+        <span class="vb-badge all">⚡ SCANNER 2</span>
+        <span class="vb-section-title">TODOS LOS VALUE BETS — EDGE ≥ {MIN_EDGE_ALL}%</span>
+        <span class="vb-section-desc">⚽ Ligas + 🎾 Tenis + 🏆 Mundial · Ordenado por edge · {len(value)} apuestas</span>
+    </div>
+    """, unsafe_allow_html=True)
 
-    render_section(high_edge, "high", "high",
-        "⚡ ALTO EDGE", f"{len(high_edge)} apuestas — Apostar moderado",
-        f"Edge ≥ {MIN_EDGE_CONVICTION}% · Cualquier cuota")
+    st.markdown("""
+    <div class="vb-info-box">
+        📌 <b>Mercados disponibles vía Winamax API:</b> 1X2 (victoria/empate/derrota) + DNB (empate apuesta no válida, derivado matemáticamente).
+        Over/Under goles, córners, tarjetas y hándicap <b>no están disponibles</b> para Winamax en el proveedor de odds actual (The Odds API).
+        El modelo de Poisson calcula probabilidades de Over/Under y BTTS internamente, pero Winamax no expone esas cuotas por esta vía.
+    </div>
+    """, unsafe_allow_html=True)
 
-    render_section(watch, "watch", "watch",
-        "👁 VIGILANCIA", f"{len(watch)} apuestas — Solo seguimiento",
-        f"Edge {MIN_EDGE_WATCH}-{MIN_EDGE_CONVICTION}% · Cuota ≤ 3.00")
+    if not value:
+        st.markdown(f'<div class="vb-empty">Sin value bets adicionales con edge ≥ {MIN_EDGE_ALL}% hoy</div>',
+                    unsafe_allow_html=True)
+    else:
+        cards2 = ""
+        for b in value:
+            dt    = b["kickoff"]
+            fecha = f"{dt[5:10]}  ·  {dt[11:16]}" if len(dt) > 10 else dt
+            sport = b.get("sport","football")
+            icon  = "🎾" if sport=="tennis" else ("🏆" if sport=="world_cup" else "⚽")
+            kelly = f"€{b['kelly']:.2f}" if b["kelly"]>0 else "—"
+            be    = round(100/b["odds"],1)
+            cards2 += f"""
+            <div class="vb-card all">
+                <div>
+                    <div class="vc-league">{icon}&nbsp; {b['league']}</div>
+                    <div class="vc-match">{b['match']}</div>
+                    <span class="vc-pill all">{b['market']}</span>
+                    <div class="vc-stats">
+                        <span class="vc-stat">Modelo: <span>{b['model']:.1f}%</span></span>
+                        <span class="vc-stat">Break-even: <span>{be}%</span></span>
+                        <span class="vc-stat">Impl. Winamax: <span>{b['implied']:.1f}%</span></span>
+                    </div>
+                    <div class="vc-date">📅 {fecha}</div>
+                </div>
+                <div class="vc-right">
+                    <div class="vc-odds all">{b['odds']}</div>
+                    <div class="vc-edge all">▲ +{b['edge']:.1f}% edge</div>
+                    <div class="vc-ev">EV / 10€ &nbsp;+{b['ev_10']:.2f}€</div>
+                    <div class="vc-kelly">Kelly &nbsp;{kelly}</div>
+                </div>
+            </div>"""
+        st.markdown(cards2, unsafe_allow_html=True)
 
     # ════════════════════════════════════════════════════════════════════════
-    # SECCIÓN MUNDIAL 2026
+    # MUNDIAL 2026 — TOP 5 + CUADRO COMPLETO
     # ════════════════════════════════════════════════════════════════════════
     st.markdown("""
-    <div class="section-header" style="border-bottom-color: rgba(212,175,55,0.2);">
-        <span class="section-badge mundial">🏆 MUNDIAL 2026</span>
-        <span class="section-label">PROYECCIONES — TODOS LOS PARTIDOS</span>
-        <span class="section-desc">Pinnacle sharp sin margen · Cuotas Winamax FR</span>
+    <div class="vb-section" style="border-bottom-color:rgba(212,175,55,0.12);">
+        <span class="vb-badge wc">🏆 MUNDIAL 2026</span>
+        <span class="vb-section-title">PROYECCIONES — PRONÓSTICOS DE PARTIDOS</span>
+        <span class="vb-section-desc">Modelo Pinnacle sharp sin margen · Cuotas y DNB: Winamax FR</span>
     </div>
     """, unsafe_allow_html=True)
 
     if not wc_proj:
-        st.markdown('<div class="empty">Sin partidos del Mundial disponibles esta semana</div>',
-                    unsafe_allow_html=True)
+        st.markdown('<div class="vb-empty">Sin partidos del Mundial disponibles</div>', unsafe_allow_html=True)
     else:
         # ── TOP 5 ────────────────────────────────────────────────────────────
         st.markdown("""
-        <div class="table-title">🥇 TOP 5 — MEJOR RELACIÓN SEGURIDAD / CUOTA</div>
-        <div class="top5-header-note">
-            Ordenado por menor margen negativo en DNB — el favorito tiene el empate como "red de seguridad".
-            <b style="color:#3dd878">Verde</b> ≥ −1.5% · <b style="color:#ffd166">Amarillo</b> ≥ −3%
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:0.95rem;color:#d4af37;
+                    letter-spacing:4px;margin:0.4rem 0 0.6rem;">
+            🥇 TOP 5 — MEJOR RELACIÓN SEGURIDAD / CUOTA (DNB)
+        </div>
+        <div class="t5-note">
+            Ordenado por menor margen negativo en apuesta DNB.
+            <b style="color:#3dd878">Verde</b> ≤ −1.5% &nbsp;·&nbsp;
+            <b style="color:#ffd166">Amarillo</b> ≤ −3% &nbsp;·&nbsp;
+            Gris = precio más ajustado.
+            DNB = empate devuelve la apuesta.
         </div>
         """, unsafe_allow_html=True)
 
-        top5   = sorted(wc_proj, key=lambda x: x["gap_dnb"], reverse=True)[:5]
-        medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
-        rows_css = ["gold", "silver", "bronze", "norm", "norm"]
+        top5     = sorted(wc_proj, key=lambda x: x["gap_dnb"], reverse=True)[:5]
+        medals   = ["🥇","🥈","🥉","4️⃣","5️⃣"]
+        row_css  = ["g1","g2","g3","gn","gn"]
 
-        top5_html = ""
+        t5_html = ""
         for i, p in enumerate(top5):
-            mg_css = "green" if p["gap_dnb"] >= -1.5 else ("yellow" if p["gap_dnb"] >= -3.0 else "grey")
-            fecha_str = p["kickoff"].replace("2026-", "").replace("-", "/")
-            top5_html += f"""
-            <div class="top5-row {rows_css[i]}">
-                <div class="top5-medal">{medals[i]}</div>
+            mc  = "gn" if p["gap_dnb"] < -3.0 else ("ye" if p["gap_dnb"] < -1.5 else "gn")
+            vc  = "gn" if p["gap_dnb"] >= -1.5 else ("ye" if p["gap_dnb"] >= -3.0 else "gr")
+            fd  = p["kickoff"].replace("2026-","").replace("-","/")
+            t5_html += f"""
+            <div class="t5-row {row_css[i]}">
+                <div class="t5-medal">{medals[i]}</div>
                 <div>
-                    <div class="top5-match">{p['home']} vs {p['away']}</div>
-                    <div class="top5-date">📅 {fecha_str}</div>
+                    <div class="t5-match">{p['home']} vs {p['away']}</div>
+                    <div class="t5-date">📅 {fd}</div>
                 </div>
-                <div class="top5-cell">
-                    <div class="top5-lbl">Favorito</div>
-                    <div class="top5-val gold">{p['fav']}</div>
-                    <div class="top5-sub">{p['fav_prob']}% prob modelo</div>
+                <div class="t5-cell">
+                    <div class="t5-lbl">Favorito</div>
+                    <div class="t5-val au">{p['fav']}</div>
+                    <div class="t5-sub">{p['fav_prob']}% prob modelo</div>
                 </div>
-                <div class="top5-cell">
-                    <div class="top5-lbl">Victoria directa</div>
-                    <div class="top5-val">@ {p['fav_odds']}</div>
-                    <div class="top5-sub">Break-even {round(100/p['fav_odds'],1)}%</div>
+                <div class="t5-cell">
+                    <div class="t5-lbl">Victoria @</div>
+                    <div class="t5-val">{p['fav_odds']}</div>
+                    <div class="t5-sub">break-ev {round(100/p['fav_odds'],1)}%</div>
                 </div>
-                <div class="top5-cell">
-                    <div class="top5-lbl">DNB (sin empate)</div>
-                    <div class="top5-val">@ {p['fav_dnb_odds']}</div>
-                    <div class="top5-sub">{p['fav_dnb_prob']}% prob condicional</div>
+                <div class="t5-cell">
+                    <div class="t5-lbl">DNB @</div>
+                    <div class="t5-val">{p['fav_dnb_odds']}</div>
+                    <div class="t5-sub">{p['fav_dnb_prob']}% cond.</div>
                 </div>
-                <div class="top5-cell">
-                    <div class="top5-lbl">Margen DNB</div>
-                    <div class="top5-val {mg_css}">{p['gap_dnb']:+.1f}%</div>
-                    <div class="top5-sub">prob − break-even</div>
+                <div class="t5-cell">
+                    <div class="t5-lbl">Margen DNB</div>
+                    <div class="t5-val {vc}">{p['gap_dnb']:+.1f}%</div>
+                    <div class="t5-sub">prob − break-even</div>
                 </div>
             </div>"""
 
-        st.markdown(top5_html, unsafe_allow_html=True)
+        st.markdown(t5_html, unsafe_allow_html=True)
 
-        # ── Cuadro completo ──────────────────────────────────────────────────
-        st.markdown('<div class="table-title">📋 CUADRO COMPLETO — TODOS LOS PARTIDOS</div>',
-                    unsafe_allow_html=True)
+        # ── CUADRO COMPLETO — ordenado por fecha asc ─────────────────────────
+        st.markdown("""
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:0.95rem;color:#d4af37;
+                    letter-spacing:4px;margin:1.8rem 0 0.8rem;">
+            📋 CUADRO COMPLETO — PARTIDOS POR FECHA
+        </div>
+        """, unsafe_allow_html=True)
 
-        def pc(v):
-            return "prob-hi" if v >= 65 else ("prob-med" if v >= 50 else "prob-lo")
+        # Ordenar cronológicamente (más próximo primero)
+        proj_sorted = sorted(wc_proj, key=lambda x: x["kickoff"])
 
-        def mc(v):
-            return "margin-ok" if v >= -1.5 else ("margin-mid" if v >= -3.0 else "margin-bad")
+        def pc(v): return "ph" if v>=65 else ("pm" if v>=50 else "")
+        def mc_fn(v): return "mk-ok" if v>=-1.5 else ("mk-mid" if v>=-3.0 else "mk-bad")
 
         rows_html = ""
-        for p in wc_proj:
-            fd   = p["kickoff"].replace("2026-", "").replace("-", "/")
-            dnb  = (f'<span class="dnb-pill">@ {p["fav_dnb_odds"]}</span>'
-                    f'<div style="font-size:0.62rem;color:#3a5a75;margin-top:2px;">{p["fav_dnb_prob"]}%</div>'
-                    ) if p["fav_dnb_odds"] >= 1.05 else "—"
+        for p in proj_sorted:
+            fd   = p["kickoff"].replace("2026-","").replace("-","/")
+            dnb  = (
+                f'<span class="dnb-p">@ {p["fav_dnb_odds"]}</span>'
+                f'<div style="font-size:0.6rem;color:#2a4a65;margin-top:2px;">{p["fav_dnb_prob"]}%</div>'
+            ) if p["fav_dnb_odds"]>=1.05 else "—"
             rows_html += f"""
             <tr>
                 <td>{fd}</td>
                 <td>{p['home']} vs {p['away']}</td>
                 <td><span class="{pc(p['home_prob'])}">{p['home_prob']}%</span>
-                    <div style="font-size:0.62rem;color:#3a5a75;">@ {p['home_odds']}</div></td>
-                <td><span style="color:#8aaac4;">{p['draw_prob']}%</span>
-                    <div style="font-size:0.62rem;color:#3a5a75;">@ {p['draw_odds']}</div></td>
+                    <div style="font-size:0.6rem;color:#2a4a65;">@ {p['home_odds']}</div></td>
+                <td><span>{p['draw_prob']}%</span>
+                    <div style="font-size:0.6rem;color:#2a4a65;">@ {p['draw_odds']}</div></td>
                 <td><span class="{pc(p['away_prob'])}">{p['away_prob']}%</span>
-                    <div style="font-size:0.62rem;color:#3a5a75;">@ {p['away_odds']}</div></td>
-                <td><span class="fav-pill">{p['fav']}</span></td>
+                    <div style="font-size:0.6rem;color:#2a4a65;">@ {p['away_odds']}</div></td>
+                <td><span class="fav-p">{p['fav']}</span></td>
                 <td>{dnb}</td>
-                <td><span class="{mc(p['gap_win'])}">{p['gap_win']:+.1f}%</span></td>
-                <td><span class="{mc(p['gap_dnb'])}">{p['gap_dnb']:+.1f}%</span></td>
+                <td><span class="{mc_fn(p['gap_win'])}">{p['gap_win']:+.1f}%</span></td>
+                <td><span class="{mc_fn(p['gap_dnb'])}">{p['gap_dnb']:+.1f}%</span></td>
             </tr>"""
 
         st.markdown(f"""
-        <div class="wc-table-wrap">
-            <table class="wc-table">
+        <div class="wc-tbl-wrap">
+            <table class="wc-tbl">
                 <thead><tr>
                     <th>Fecha</th><th>Partido</th>
                     <th>Local</th><th>Empate</th><th>Visitante</th>
@@ -691,26 +591,24 @@ if st.button("🔍  ESCANEAR APUESTAS DE HOY"):
                 <tbody>{rows_html}</tbody>
             </table>
             <div class="wc-legend">
-                <span>🔑 <b style="color:#d4af37">Margen</b> = prob modelo − break-even (menos negativo = mejor precio)</span>
-                <span>🛡 <b style="color:#60c0ff">DNB</b> = Draw No Bet — empate devuelve la apuesta</span>
-                <span><b style="color:#3dd878">Verde</b> ≥ −1.5% &nbsp;·&nbsp; <b style="color:#ffd166">Amarillo</b> ≥ −3% &nbsp;·&nbsp; Gris = peor precio</span>
+                <span>Margen = prob. modelo − break-even · menos negativo = mejor precio</span>
+                <span><b style="color:#3dd878">Verde</b> ≥ −1.5% &nbsp;·&nbsp; <b style="color:#ffd166">Amarillo</b> ≥ −3%</span>
+                <span>DNB = Draw No Bet · empate devuelve apuesta</span>
+                <span>Modelo: Pinnacle sin margen (no-vig)</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-    # ── Export ───────────────────────────────────────────────────────────────
+    # ── EXPORT ───────────────────────────────────────────────────────────────
     if all_bets:
         st.markdown("<br>", unsafe_allow_html=True)
         df = pd.DataFrame([{
-            "Liga": b["league"], "Partido": b["match"],
-            "Fecha": b["kickoff"], "Apuesta": b["market"],
-            "Cuota": b["odds"], "Modelo%": b["model"],
-            "Edge%": b["edge"], "Kelly€": b["kelly"],
-            "Veredicto": b["verdict"],
+            "Liga":b["league"], "Partido":b["match"], "Fecha":b["kickoff"],
+            "Apuesta":b["market"], "Cuota":b["odds"], "Modelo%":b["model"],
+            "Edge%":b["edge"], "Kelly€":b["kelly"], "Veredicto":b["verdict"],
         } for b in all_bets])
         st.download_button(
             "↓  Descargar CSV completo",
             df.to_csv(index=False).encode("utf-8"),
-            f"value_bets_{now.strftime('%Y%m%d')}.csv",
-            "text/csv",
+            f"value_bets_{now.strftime('%Y%m%d')}.csv", "text/csv",
         )
